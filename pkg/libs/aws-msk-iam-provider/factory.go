@@ -28,6 +28,14 @@ type pluginMeta struct {
 
 // Factory type
 type Factory struct {
+	signer TokenSigner
+}
+
+// NewFactory creates a new factory with the given signer
+func NewFactory(signer TokenSigner) *Factory {
+	return &Factory{
+		signer: signer,
+	}
 }
 
 // New implements apis.TokenProviderFactory
@@ -59,5 +67,5 @@ func (t *Factory) New(params []string) (apis.TokenProvider, error) {
 		Timeout:     pluginMeta.timeout,
 	}
 
-	return NewTokenProvider(options)
+	return NewTokenProvider(options, t.signer)
 }

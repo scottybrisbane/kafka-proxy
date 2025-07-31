@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-msk-iam-sasl-signer-go/signer"
 	"github.com/cenkalti/backoff"
 	"github.com/grepplabs/kafka-proxy/pkg/apis"
 	"github.com/pkg/errors"
@@ -35,6 +34,9 @@ type TokenProvider struct {
 	externalID  string
 	sessionName string
 
+	// Token generation
+	signer TokenSigner
+
 	currentToken  string
 	currentExpiry time.Time
 	l             sync.RWMutex
@@ -51,7 +53,7 @@ type TokenProviderOptions struct {
 }
 
 // NewTokenProvider - Generate new AWS MSK IAM token provider
-func NewTokenProvider(options TokenProviderOptions) (*TokenProvider, error) {
+func NewTokenProvider(options TokenProviderOptions, signer TokenSigner) (*TokenProvider, error) {
 	tokenProvider := &TokenProvider{
 		timeout:     time.Duration(options.Timeout) * time.Second,
 		region:      options.Region,
@@ -59,6 +61,7 @@ func NewTokenProvider(options TokenProviderOptions) (*TokenProvider, error) {
 		roleARN:     options.RoleARN,
 		externalID:  options.ExternalID,
 		sessionName: options.SessionName,
+		signer:      signer,
 	}
 
 	// Initialize with first token
@@ -145,16 +148,16 @@ func (p *TokenProvider) GetToken(parent context.Context, _ apis.TokenRequest) (a
 	// Generate token based on configuration
 	if p.roleARN != "" {
 		if p.externalID != "" {
-			token, _, err = signer.GenerateAuthTokenFromRoleWithExternalId(
+			token, _, err = p.signer.GenerateAuthTokenFromRoleWithExternalId(
 				ctx, p.region, p.roleARN, p.sessionName, p.externalID)
 		} else {
-			token, _, err = signer.GenerateAuthTokenFromRole(
+			token, _, err = p.signer.GenerateAuthTokenFromRole(
 				ctx, p.region, p.roleARN, p.sessionName)
 		}
 	} else if p.profile != "" {
-		token, _, err = signer.GenerateAuthTokenFromProfile(ctx, p.region, p.profile)
+		token, _, err = p.signer.GenerateAuthTokenFromProfile(ctx, p.region, p.profile)
 	} else {
-		token, _, err = signer.GenerateAuthToken(ctx, p.region)
+		token, _, err = p.signer.GenerateAuthToken(ctx, p.region)
 	}
 
 	if err != nil {

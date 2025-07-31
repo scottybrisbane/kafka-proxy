@@ -10,7 +10,14 @@ import (
 )
 
 func main() {
-	tokenProvider, err := new(awsmskiamprovider.Factory).New(os.Args[1:])
+	// Create the AWS MSK IAM token signer
+	signer := awsmskiamprovider.NewAwsMskIamTokenSigner()
+
+	// Create the factory with the signer
+	factory := awsmskiamprovider.NewFactory(signer)
+
+	// Create the token provider
+	tokenProvider, err := factory.New(os.Args[1:])
 
 	if err != nil {
 		logrus.Errorf("cannot initialize aws-msk-iam-token provider: %v", err)
