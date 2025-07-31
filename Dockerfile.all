@@ -24,12 +24,12 @@ RUN mkdir -p build && \
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates libcap
 RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    kafka-proxy
+        --disabled-password \
+        --gecos "" \
+        --home "/nonexistent" \
+        --shell "/sbin/nologin" \
+        --no-create-home \
+        kafka-proxy
 
 COPY --from=builder /go/src/github.com/grepplabs/kafka-proxy/build /opt/kafka-proxy/bin
 RUN setcap 'cap_net_bind_service=+ep' /opt/kafka-proxy/bin/kafka-proxy && \
